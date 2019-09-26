@@ -162,4 +162,36 @@ uml1 # ip address add 192.168.100.101/24 dev eth0
 uml1 # ping 192.168.100.100
 ~~~
 
-## TODO: Practica 1 de redes
+## NAT UML con el HOST
+### HOST
+~~~
+host $ lsmod | grep iptable_nat
+host $ modprobe iptable_nat
+host $ sysctl net.ipv4.ip_forward
+host # sysctl -w net.ipv4.ip_forward=1
+
+host # iptables -t nat -A POSTROUTING -o wlp2s0 -j MASQUERADE
+host # iptables -A FORWARD -i eth1 -j ACCEPT
+~~~
+
+### UML
+~~~
+uml1 # route add default gw 192.168.100.100
+~~~
+
+## PREGUNTAR ESTAS DOS REGLAS
+### Solucion del bloqueo
+~~~
+-A INPUT -j REJECT --reject-with icmp-host-prohibited
+-A FORWARD -j REJECT --reject-with icmp-host-prohibited
+~~~
+	
+
+## NOTAS (DOCUMENTAR ESTO EN MI REPOSITORIO DE NETWORKING)
+~~~
+host # tcpdump -i tap0 -XX
+~~~
+
+
+## TODO: /etc/resolv.conf
+## TODO: COW: Copy-On-Write
