@@ -1,10 +1,16 @@
 # User-mode linux kernel
+# https://www.kernel.org/doc/html/latest/virt/uml/user_mode_linux_howto_v2.html#starting-uml
 
 ## 1.- Descargar ultima version del linux kernel
 ~~~
 host $ curl -LO https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.3.1.tar.xz
 host $ tar xvf linux-5.3.1.tar.xz
 host $ cd linux-5.3.1
+~~~
+
+### 1.1- Dependencias
+~~~
+host $ sudo dnf install ncurses-devel
 ~~~
 
 ## 2.- Configuracion manual ( Si quieres utilizar ipv6 debes darle soporte aqui )
@@ -15,15 +21,15 @@ host $ make menuconfig ARCH=um SUBARCH=x86_64
 ## 3.- Compilar el kernel modo User-mode linux [uml]
 ~~~
 host $ make -j2 linux ARCH=um SUBARCH=x86_64    # -j numero de cores para compilar
-host # ln -s $PWD/linux-5.3.1/linux   /bin/linux
-host # ln -s $PWD/linux-5.3.1/vmlinux /bin/vmlinux
-host $ cd ..
+host # ln -s $(pwd)/linux   /bin/linux
+host $ md5sum linux
+host $ md5sum vmlinux
 ~~~
 
 ## 4.- Crear un rootfs (alpine)
 ~~~
 host $ export REPO=http://dl-cdn.alpinelinux.org/alpine/v3.10/main
-host $ dd if=/dev/zero of=rootfs.ext4 bs=1M seek=50 count=0
+host $ dd if=/dev/zero of=rootfs.ext4 bs=1 count=0 seek=1G
 host $ mkfs.ext4 rootfs.ext4
 host $ mkdir rootfs
 host # losetup /dev/loop0 rootfs.ext4
@@ -32,7 +38,7 @@ host # chown -R formatcom:formatcom rootfs
 host $ curl -LO $REPO/main/x86_64/apk-tools-static-2.10.4-r2.apk 
 host $ tar -xvf apk-tools-static-2.10.4-r2.apk -C rootfs
 host # ./rootfs/sbin/apk.static --repository $REPO \
-	--update-cache --allow-untrusted --root $PWD/rootfs \
+	--update-cache --allow-untrusted --root $(pwd)/rootfs \
 	--initdb add alpine-base
 host # chown -R formatcom:formatcom rootfs
 ~~~
@@ -40,11 +46,11 @@ host # chown -R formatcom:formatcom rootfs
 ## 5.- Compilar y agregar modulos del kernel al rootfs
 ~~~
 host $ cd linux-5.3.1
+host $ mkdir mods
 host # mount /dev/loop0 mods
 host $ make modules INSTALL_MOD_PATH=mods ARCH=um SUBARCH=x86_64
 host $ make modules_install INSTALL_MOD_PATH=mods ARCH=um SUBARCH=x86_64
 host # umount mods
-host # losetup -d /dev/loop0
 host $ cd ..
 ~~~
 
@@ -134,6 +140,12 @@ auto lo
 iface lo inet loopback
 ~~~
 
+### pre 11 xD
+~~~
+host # umount rootfs
+host # losetup -d /dev/loop0
+~~~
+
 ## 11.- Ejecutar Kernel uml
 
 ### Forma mas basica
@@ -143,6 +155,9 @@ host $ linux umid=uml1 ubda=rootfs.ext4 rw
 umid ->  identificador de la maquina virtual
 ubda ->  virtual block device
 rw   ->  lectura/escritura
+
+usuario -> root
+apagar -> $ half -f
 ~~~
 
 ### Usando nuestro hostname
@@ -150,15 +165,32 @@ rw   ->  lectura/escritura
 host $ linux umid=uml1 hostname=uml1 ubda=rootfs.ext4 rw
 ~~~
 
+- TUN funciona en capa 3
+- TAP funciona en capa 2
+
+- ARP
+$ ip neigh show 
+$ ip neigh flush all
+
+o
+
+$ ip neigh show 
+$ ip neigh flush 192.168.100.100
+
+
 ## 12.- Networking tuntap
 ~~~
 host # ip tuntap add tap0 mode tap 
+host $ ip tuntap show tap0
+host $ ip link show tap0
 host # ip link set tap0 up
 host # ip address add 192.168.100.100/24 dev tap0
 host $ linux umid=uml1 hostname=uml1 eth0=tuntap,tap0 ubda=rootfs.ext4 rw
 
+uml1 $ ip link show eth0
 uml1 # ip link set eth0 up
 uml1 # ip address add 192.168.100.101/24 dev eth0
+uml1 $ ip addres show eth0
 uml1 # ping 192.168.100.100
 ~~~
 
@@ -189,7 +221,7 @@ uml1 # route add default gw 192.168.100.100
 
 ## NOTAS (DOCUMENTAR ESTO EN MI REPOSITORIO DE NETWORKING)
 ~~~
-host # tcpdump -i tap0 -XX
+host # tcpdump -i tap0 -XX -n
 ~~~
 
 
