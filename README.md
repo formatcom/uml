@@ -29,7 +29,7 @@ host $ md5sum vmlinux
 ## 4.- Crear un rootfs (alpine)
 ~~~
 host $ export REPO=http://dl-cdn.alpinelinux.org/alpine/v3.10/main
-host $ dd if=/dev/zero of=rootfs.ext4 bs=1 count=0 seek=1G
+host $ dd if=/dev/zero of=rootfs.ext4 bs=1 count=0 seek=50M
 host $ mkfs.ext4 rootfs.ext4
 host $ mkdir rootfs
 host # losetup /dev/loop0 rootfs.ext4
