@@ -21,7 +21,7 @@ host $ make menuconfig ARCH=um SUBARCH=x86_64
 ## 3.- Compilar el kernel modo User-mode linux [uml]
 ~~~
 host $ make -j2 linux ARCH=um SUBARCH=x86_64    # -j numero de cores para compilar
-host # ln -s $(pwd)/linux   /bin/linux
+host # ln -s $(pwd)/vmlinux   /bin/vmlinux
 host $ md5sum linux
 host $ md5sum vmlinux
 ~~~
